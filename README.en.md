@@ -51,7 +51,7 @@ Run `CamPane.Probe.exe` with no arguments to see the usage.
 | Subcommand | What it does |
 |---|---|
 | `decoders` | Lists H.264 decoders |
-| `decode <file>` | Decodes a raw H.264 (Annex B) file and reports frame count and size |
+| `decode <file>` | Decodes a raw H.264 (Annex B) file and reports frame count and size. Since v0.0.2 it compares four ways of feeding ((a) as is, (b) low-latency mode, (c) one picture per sample, (d) SPS rewritten to declare no reordering) and reports how many pictures the decoder holds back |
 | `show <file>` | Decodes the same file and loops it in a window (to check that screen share can capture it) |
 
 The probe never writes decoded images to disk. Delete the video file you feed it after checking (`.gitignore` keeps video files out of the repository).

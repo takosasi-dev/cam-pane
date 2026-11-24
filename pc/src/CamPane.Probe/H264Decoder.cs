@@ -6,6 +6,7 @@ using System.Runtime.InteropServices;
 using Windows.Win32;
 using Windows.Win32.Foundation;
 using Windows.Win32.Media.MediaFoundation;
+using Windows.Win32.System.Variant;
 
 namespace CamPane.Probe;
 
@@ -33,6 +34,7 @@ internal sealed unsafe class H264Decoder : IDisposable
     private readonly byte[] _data;
     private readonly List<Nal> _nals;
     private readonly bool _verbose;
+    private readonly bool _lowLatency;
     private IMFTransform* _mft;
     private IMFSample* _ownSample; // 自分で確保した出力のサンプル。MFT が確保する型なら null のまま
     private bool _mftAllocates;
@@ -40,11 +42,12 @@ internal sealed unsafe class H264Decoder : IDisposable
     private int _streamChanges;
     private long _pictures;
 
-    internal H264Decoder(byte[] data, List<Nal> nals, bool verbose)
+    internal H264Decoder(byte[] data, List<Nal> nals, bool verbose, bool lowLatency = false)
     {
         _data = data;
         _nals = nals;
         _verbose = verbose;
+        _lowLatency = lowLatency;
         try
         {
             Open();
@@ -69,6 +72,9 @@ internal sealed unsafe class H264Decoder : IDisposable
 
     /// <summary>デコーダーに入れ終えた NAL の数。</summary>
     internal int Fed { get; private set; }
+
+    /// <summary>出し切り(END_OF_STREAM と DRAIN)を頼んだ後なら true。</summary>
+    internal bool Drained => _drained;
 
     /// <summary>次の 1 枚を Nv12 に入れて true を返す。NAL を全部入れ、残りも出し切った後は false を返す。</summary>
     internal bool TryReadFrame()
@@ -201,6 +207,11 @@ internal sealed unsafe class H264Decoder : IDisposable
                 Mf.Check(list[i]->ActivateObject(&iid, (void**)&mft), "IMFActivate::ActivateObject(IMFTransform)");
                 _mft = mft;
                 RefuseAsync();
+                if (_lowLatency)
+                {
+                    ApplyLowLatency();
+                }
+
                 SetInputType();
                 NegotiateOutput(afterStreamChange: false);
                 return;
@@ -243,6 +254,78 @@ internal sealed unsafe class H264Decoder : IDisposable
         finally
         {
             attributes->Release();
+        }
+    }
+
+    // 型を決める前に低遅延を頼む。CODECAPI_AVLowLatencyMode と MF_LOW_LATENCY は同じ GUID(codecapi.h 617 行 / mfapi.h 3456 行)で、
+    // 同じキーを ICodecAPI と IMFAttributes の 2 つの経路で入れる。失敗しても投げない(投げると Open が次の候補へ進み、
+    // (a) と別のデコーダーを比べてしまう)。HRESULT と読み戻しを全部出す。Learn: Microsoft の H.264 デコーダーは VT_UI4 を使う。
+    private void ApplyLowLatency()
+    {
+        var key = typeof(CODECAPI_AVLowLatencyMode).GUID;
+        Console.WriteLine($"低遅延: キー {key:B}(CODECAPI_AVLowLatencyMode。MF_LOW_LATENCY と{(key == PInvoke.MF_LOW_LATENCY ? "同じ" : "違う")} GUID)");
+        ICodecAPI* codec = null;
+        IMFAttributes* attributes = null;
+        try
+        {
+            var iid = ICodecAPI.IID_Guid;
+            var hr = _mft->QueryInterface(&iid, (void**)&codec);
+            Console.WriteLine($"  IMFTransform::QueryInterface(ICodecAPI): {Mf.Describe(hr)}");
+            if (hr.Failed)
+            {
+                codec = null;
+            }
+            else
+            {
+                Console.WriteLine($"  ICodecAPI::IsSupported: {Mf.Describe(codec->IsSupported(key))}");
+                var value = default(VARIANT);
+                value.vt = VARENUM.VT_UI4;
+                value.ulVal = 1;
+                hr = codec->SetValue(key, value);
+                Console.WriteLine($"  ICodecAPI::SetValue(VT_UI4 1): {Mf.Describe(hr)}");
+                if (hr.Failed)
+                {
+                    value = default;
+                    value.vt = VARENUM.VT_BOOL;
+                    value.boolVal = VARIANT_BOOL.VARIANT_TRUE;
+                    Console.WriteLine($"  ICodecAPI::SetValue(VT_BOOL TRUE): {Mf.Describe(codec->SetValue(key, value))}");
+                }
+            }
+
+            hr = _mft->GetAttributes(&attributes);
+            Console.WriteLine($"  IMFTransform::GetAttributes: {Mf.Describe(hr)}");
+            if (hr.Failed || attributes == null)
+            {
+                attributes = null;
+            }
+            else
+            {
+                Console.WriteLine($"  IMFAttributes::SetUINT32(MF_LOW_LATENCY, 1): {Mf.Describe(attributes->SetUINT32(PInvoke.MF_LOW_LATENCY, 1))}");
+                hr = attributes->GetUINT32(PInvoke.MF_LOW_LATENCY, out uint stored);
+                Console.WriteLine($"  読み戻し IMFAttributes::GetUINT32: {Mf.Describe(hr)}{(hr.Succeeded ? $" 値 {stored}" : "")}");
+            }
+
+            if (codec != null)
+            {
+                hr = codec->GetValue(key, out VARIANT current);
+                Console.WriteLine($"  読み戻し ICodecAPI::GetValue: {Mf.Describe(hr)}{(hr.Succeeded ? $" 型 {current.vt} 値 {(current.vt == VARENUM.VT_BOOL ? current.boolVal.Value : current.ulVal)}" : "")}");
+                if (hr.Succeeded)
+                {
+                    _ = PInvoke.VariantClear(ref current);
+                }
+            }
+        }
+        finally
+        {
+            if (codec != null)
+            {
+                codec->Release();
+            }
+
+            if (attributes != null)
+            {
+                attributes->Release();
+            }
         }
     }
 
