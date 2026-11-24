@@ -3,7 +3,7 @@
 Shows the camera of an Android device in a window on a Windows PC. [日本語](README.md)
 
 > **Work in progress. Nothing here is usable yet.**
-> The repository currently contains only the PC-side measurement tool (probe) used to settle the design. The PC app and the Android app are not written yet.
+> The repository currently contains only the measurement tools (probes) used to settle the design, for the PC and for Android. The app itself is not written yet.
 
 ## What this app does
 
@@ -28,8 +28,15 @@ Because it handles a camera, the design keeps to these rules:
 
 | Phase | Content | State |
 |---|---|---|
-| Phase 0 | Probes | PC side builds. **It has never been run yet.** Android side not written |
+| Phase 0 | Probes | PC and Android sides written. Encoding on a dtab (Android 7.0) and decoding it on the PC are confirmed. `show` and screen share are not checked yet |
 | Phase 1–3 | The app | Not started |
+
+## Download
+
+The v0.0.1 pre-release on [Releases](https://github.com/takosasi-dev/cam-pane/releases) has the probe APK and a Windows zip.
+
+- **Windows zip**: bundles the .NET 10 runtime, so you do not need to install .NET. Extract it and run `CamPane.Probe.exe` from PowerShell.
+- **APK**: **a provisional build signed with a debug key.** Once builds are signed with the real key, you will need to uninstall it and install again.
 
 ## What is here now: the PC-side probe
 
@@ -48,6 +55,40 @@ Run `CamPane.Probe.exe` with no arguments to see the usage.
 | `show <file>` | Decodes the same file and loops it in a window (to check that screen share can capture it) |
 
 The probe never writes decoded images to disk. Delete the video file you feed it after checking (`.gitignore` keeps video files out of the repository).
+
+## What is here now: the Android probe
+
+It lists the device's cameras and H.264 encoders on screen, then encodes 5 seconds of camera video and saves it as a raw H.264 (Annex B) file. Every line on screen also goes to logcat (tag `CamPaneProbe`).
+
+- The only permission is CAMERA. It does not use the network (no INTERNET permission).
+- There are two encode paths. The default goes through GL, because on some devices the direct path produces no frames (the camera side rejects it).
+- It only encodes while the app is on screen. Sending it to the background closes the camera and the encoder.
+
+Build (JDK 17 and the Android SDK; put `sdk.dir` in `android\local.properties`):
+
+```powershell
+cd android; .\gradlew.bat assembleDebug
+```
+
+Usage:
+
+- Tap "5 秒圧縮して保存" (encode 5 seconds and save; GL path).
+- From adb:
+
+```powershell
+adb shell am start -n io.github.takosasidev.campane.probe/.MainActivity --es action encode         # via GL
+adb shell am start -n io.github.takosasidev.campane.probe/.MainActivity --es action encode-direct  # direct
+```
+
+Files are saved to `/storage/emulated/0/Android/data/io.github.takosasidev.campane.probe/files/` (`campane_probe_<datetime>.h264`). Copy one to the PC and feed it to the PC-side probe:
+
+```powershell
+adb pull /storage/emulated/0/Android/data/io.github.takosasidev.campane.probe/files/campane_probe_<datetime>.h264
+CamPane.Probe.exe decode campane_probe_<datetime>.h264
+CamPane.Probe.exe show campane_probe_<datetime>.h264
+```
+
+**The video shows your room. Delete the file on both the device and the PC after checking** (on the device, `adb shell rm <path>`, or uninstall the app, which removes it too).
 
 ## License
 
