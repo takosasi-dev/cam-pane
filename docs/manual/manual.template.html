@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<!-- CamPane の測定用ツール(Probe)の取扱説明書。ManualForge で PDF にする(値は data.json の app と release)。 -->
+<!-- 作り方: python -m manualforge run docs\manual\manual.template.html docs\manual\data.json -o dist\manual -->
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>{{ app.name }} 測定用ツール 取扱説明書</title>
+<style>
+  @page { size: A4; }
+  :root {
+    --ink: #1f2328; --sub: #57606a; --line: #d0d7de; --soft: #f6f8fa;
+    --accent: #0b5cad; --accent-soft: #e8f1fb; --warn: #9a3412; --warn-soft: #fff4e5;
+  }
+  html, body { margin: 0; padding: 0; }
+  body { font-family: "BIZ UDPGothic", "Yu Gothic", sans-serif; color: var(--ink); font-size: 10.5pt; line-height: 1.75; }
+  h1, h2, h3 { line-height: 1.35; }
+  h2 { font-size: 15pt; margin: 0 0 10px; padding: 0 0 6px; border-bottom: 2px solid var(--accent); color: var(--accent); }
+  h3 { font-size: 11.5pt; margin: 18px 0 6px; padding-left: 8px; border-left: 4px solid var(--accent); }
+  p { margin: 6px 0; }
+  ul, ol { margin: 6px 0; padding-left: 1.4em; }
+  li { margin: 2px 0; }
+  code, .mono { font-family: "BIZ UDGothic", "Consolas", monospace; font-size: 9.5pt; background: var(--soft); padding: 0 3px; border-radius: 3px; }
+  pre { font-family: "BIZ UDGothic", "Consolas", monospace; font-size: 8.8pt; line-height: 1.5; background: var(--soft); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; white-space: pre-wrap; word-break: break-all; margin: 6px 0; }
+  table { border-collapse: collapse; width: calc(100% - 1px); margin: 8px 0; font-size: 9.8pt; }
+  th, td { border: 1px solid var(--line); padding: 5px 8px; vertical-align: top; text-align: left; }
+  th { background: var(--soft); white-space: nowrap; }
+  .page { break-after: page; }
+  .mf-page-break { break-after: page; }
+  .note { background: var(--accent-soft); border-left: 4px solid var(--accent); padding: 8px 12px; margin: 10px 0; border-radius: 0 6px 6px 0; }
+  .warn { background: var(--warn-soft); border-left: 4px solid var(--warn); padding: 8px 12px; margin: 10px 0; border-radius: 0 6px 6px 0; }
+  .warn strong { color: var(--warn); }
+  .steps { counter-reset: step; list-style: none; padding-left: 0; }
+  .steps > li { counter-increment: step; position: relative; padding-left: 2.2em; margin: 6px 0; }
+  .steps > li::before { content: counter(step); position: absolute; left: 0; top: 0.1em; width: 1.6em; height: 1.6em; border-radius: 50%; background: var(--accent); color: #fff; font-size: 9pt; text-align: center; line-height: 1.6em; }
+  figure.mf-figure { margin: 10px 0; text-align: center; break-inside: avoid; }
+  figure.mf-figure img { max-width: 100%; border: 1px solid var(--line); border-radius: 6px; }
+  figure.mf-figure.phone img { max-height: 150mm; }
+  figcaption { font-size: 9pt; color: var(--sub); margin-top: 4px; }
+  /* 表紙 */
+  .cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; }
+  .cover .kind { color: var(--accent); font-size: 12pt; letter-spacing: 0.1em; }
+  .cover h1 { font-size: 30pt; margin: 6px 0 4px; }
+  .cover .sub { font-size: 14pt; color: var(--sub); margin-bottom: 28px; }
+  .cover .meta { border-top: 1px solid var(--line); padding-top: 10px; color: var(--sub); font-size: 10pt; }
+  /* 目次 */
+  .toc ol { padding-left: 1.2em; }
+  .toc li { margin: 4px 0; }
+  .muted { color: var(--sub); }
+</style>
+</head>
+<body>
+
+<!-- 1. 表紙(このまま。subtitle だけ data.json で) -->
+<section class="page cover">
+  <div class="kind">取扱説明書</div>
+  <h1>{{ app.name }}</h1>
+  <div class="sub">{{ app.subtitle }}</div>
+  <div class="meta">
+    版 {{ app.version }}(プレリリース) / {{ app.date }}<br>
+    {{ app.repo }}
+  </div>
+</section>
+
+<!-- 2. 目次と、この説明書の前提 -->
+<section class="page toc">
+  <h2>目次</h2>
+  <ol>
+    <li>はじめに(このツールでできること・できないこと)</li>
+    <li>用意する物</li>
+    <li>入れ方</li>
+    <li>使い方</li>
+    <li>結果の読み方</li>
+    <li>困ったとき</li>
+    <li>安全とプライバシー</li>
+    <li>片付け</li>
+    <li>ライセンスと連絡先</li>
+  </ol>
+  <div class="warn">
+    <strong>この説明書は、測定用ツール(Phase 0 の Probe)の物です。アプリ本体の物ではありません。</strong><br>
+    {{ app.name }} のアプリ本体は、まだありません。<strong>端末のカメラの映像を PC に生で映すことは、まだできません。</strong>
+    このツールでできるのは、端末で 5 秒だけ撮ってファイルに保存し、そのファイルを PC で復号して数えたり、ウィンドウで繰り返し再生したりすることだけです。
+  </div>
+  <div class="note">
+    この説明書の画面や出力の例に出るファイル名・日時は、説明のための架空の物です。数字は、dtab d-01J(Android 7.0)で実際に測った値を使っています。
+  </div>
+</section>
+
+<!-- 1. はじめに -->
+<section>
+  <h2>1. はじめに(このツールでできること・できないこと)</h2>
+  <p>{{ app.name }} は、Android 端末のカメラの映像を、Windows PC の 1 枚のウィンドウに映すためのソフトとして作っている物です。通話や画面共有で、手元(楽器の指、紙に書いた図、ボードゲームの盤面など)を見せるために、机の上の端末をカメラとして使います。PC 側は普通のウィンドウに映すだけで、Discord の画面共有や録画のソフトでは、そのウィンドウを選んで使う形にします。</p>
+  <p>本体を作る前に、「この端末でカメラの映像を圧縮できるか」「PC で復号してウィンドウに出せるか」「そのウィンドウを画面共有で取り込めるか」を確かめる必要があります。そのための道具が、この測定用ツール(Probe)です。</p>
+
+  <h3>できること</h3>
+  <ul>
+    <li>端末のカメラと、H.264 のエンコーダー(映像を圧縮する部品)の一覧を画面に出す</li>
+    <li>端末のカメラで 5 秒だけ撮って H.264 に圧縮し、端末の中にファイルとして保存する</li>
+    <li>そのファイルを PC で復号し、フレームの数と、絵が出るまでの溜め(遅れ)を数える(<code>decode</code>)</li>
+    <li>そのファイルを PC のウィンドウで繰り返し再生する(<code>show</code>)。画面共有で選んで、黒くならないかを見るため</li>
+  </ul>
+
+  <h3>できないこと</h3>
+  <ul>
+    <li>端末のカメラの映像を、いま撮っているまま PC に映すこと(本体でこれから作ります)</li>
+    <li>端末と PC をネットワークでつなぐこと(Probe は通信しません。ファイルは USB の <code>adb</code> で写します)</li>
+    <li>音を撮ること、長く録画すること</li>
+    <li>仮想カメラとして、ほかのソフトのカメラの一覧に出ること(本体でも作りません)</li>
+  </ul>
+
+  <h3>2 つの部品</h3>
+  <table>
+    <tr><th>部品</th><th>動く所</th><th>やること</th></tr>
+    <tr><td>Android の Probe(アプリ名「CamPane Probe」)</td><td>Android 端末</td><td>一覧を出す。5 秒撮って保存する</td></tr>
+    <tr><td>PC の Probe(<code>CamPane.Probe.exe</code>)</td><td>Windows PC</td><td>デコーダーの一覧、ファイルの復号と数え、ウィンドウでの再生</td></tr>
+  </table>
+</section>
+
+<div class="mf-page-break"></div>
+
+<!-- 2. 用意する物 -->
+<section>
+  <h2>2. 用意する物</h2>
+  <table>
+    <tr><th>物</th><th>説明</th></tr>
+    <tr><td>Windows の PC</td><td>Windows 11(64 ビット)。管理者の権限は要りません</td></tr>
+    <tr><td>Android 端末</td><td>Android 7.0 以上で、カメラが付いている物。作者が確かめたのは dtab d-01J(Android 7.0)だけです</td></tr>
+    <tr><td>USB ケーブル</td><td>端末と PC をつなぐ物。充電だけのケーブルではなく、データを通せる物</td></tr>
+    <tr><td>adb</td><td>PC から端末を操作する Google の道具。「Android SDK Platform-Tools」に入っています。ファイルを PC へ写すのに使います</td></tr>
+    <tr><td>Discord など</td><td>画面共有で取り込めるかを確かめるとき。録画のソフトでもかまいません</td></tr>
+  </table>
+
+  <h3>ダウンロードする物</h3>
+  <p>{{ app.repo }}/releases の v{{ app.version }}(プレリリース)から、次の 2 つをダウンロードします。</p>
+  <table>
+    <tr><th>ファイル</th><th>中身</th></tr>
+    <tr><td><code>{{ release.zip }}</code></td><td>PC の Probe。.NET 10 のランタイムを同梱しているので、.NET を入れなくても動きます</td></tr>
+    <tr><td><code>{{ release.apk }}</code></td><td>Android の Probe。v0.0.1 と同じ物です。デバッグ用の鍵で署名した仮の物です</td></tr>
+  </table>
+  <div class="note">
+    APK は仮の鍵で署名しています。正式な鍵で署名した版が出たら、いったん消してから入れ直す必要があります。
+  </div>
+</section>
+
+<!-- 3. 入れ方 -->
+<section>
+  <br>
+  <h2>3. 入れ方</h2>
+
+  <h3>3.1 PC の Probe</h3>
+  <ol class="steps">
+    <li><code>{{ release.zip }}</code> を右クリックし、「すべて展開」で好きな場所に展開します。</li>
+    <li>展開した中に <code>CamPane-Probe-v{{ app.version }}-win-x64</code> のフォルダが 1 つあります。その中に <code>CamPane.Probe.exe</code> があります。</li>
+    <li>そのフォルダを開き、エクスプローラーのアドレス欄に <code>powershell</code> と打って Enter を押します。そのフォルダで PowerShell が開きます(管理者でなくてかまいません)。</li>
+    <li>次を打って Enter を押します。使い方の説明が出れば、入れ終わりです。
+      <pre>.\CamPane.Probe.exe</pre>
+    </li>
+  </ol>
+  <p class="muted">exe をダブルクリックしても、黒い窓が一瞬出て閉じるだけです。PowerShell から動かしてください。</p>
+  <p class="muted">この説明書の命令の中の「¥」は、バックスラッシュ(フォルダの区切りの記号)です。日本語のキーボードでは ¥ キーで打てます。</p>
+
+  <h3>3.2 adb</h3>
+  <ol class="steps">
+    <li>Google の Android Developers のサイトから「SDK Platform-Tools」の Windows 版をダウンロードし、展開します。中に <code>adb.exe</code> があります。</li>
+    <li>端末で「開発者向けオプション」を出します。多くの機種では、設定の「端末情報」(「タブレット情報」)の「ビルド番号」を 7 回続けて押すと出ます。</li>
+    <li>「開発者向けオプション」の「USB デバッグ」をオンにします。</li>
+    <li>端末と PC を USB ケーブルでつなぎます。端末に「USB デバッグを許可しますか?」と出たら、「許可」を押します。</li>
+    <li>PC の PowerShell で、<code>adb.exe</code> のあるフォルダから次を打ちます。端末の番号の後ろに <code>device</code> と出れば、つながっています。
+      <pre>.\adb.exe devices</pre>
+    </li>
+  </ol>
+  <div class="note">
+    この説明書では、PowerShell を 2 つの場所で使います。<strong>adb の命令は、いつも adb.exe のあるフォルダ</strong>の PowerShell で <code>.\adb.exe</code> と打ちます。<strong>Probe の命令は、CamPane.Probe.exe のあるフォルダ</strong>の PowerShell で <code>.\CamPane.Probe.exe</code> と打ちます。2 つの PowerShell を開いたままにしておくと楽です。
+  </div>
+
+  <h3>3.3 Android の Probe</h3>
+  <p>次のどちらかで入れます。</p>
+  <p><strong>A. adb で入れる(おすすめ)</strong></p>
+  <ol class="steps">
+    <li>APK を、<code>adb.exe</code> と同じフォルダに置きます。</li>
+    <li>次を打ちます。<code>Success</code> と出れば入れ終わりです。
+      <pre>.\adb.exe install {{ release.apk }}</pre>
+    </li>
+  </ol>
+  <p><strong>B. 端末だけで入れる</strong></p>
+  <ol class="steps">
+    <li>APK を端末に写し、端末のファイルの一覧から開きます。</li>
+    <li>「提供元不明のアプリ」を許可するよう求められたら、許可します。場所は Android の版と機種で違います(Android 7 では多くの機種で、設定の「セキュリティ」の中にあります)。</li>
+    <li>「インストール」を押します。入れ終えたら、提供元不明のアプリの許可は元に戻してかまいません。</li>
+  </ol>
+</section>
+
+<div class="mf-page-break"></div>
+
+<!-- 4. 使い方 -->
+<section>
+  <h2>4. 使い方</h2>
+  <p>一続きの流れは次の 5 つです。順に進めてください。</p>
+  <table>
+    <tr><th>順</th><th>やること</th><th>使う物</th></tr>
+    <tr><td>4.1</td><td>端末で 5 秒撮る</td><td>Android の Probe</td></tr>
+    <tr><td>4.2</td><td>撮ったファイルを PC へ写す</td><td>adb</td></tr>
+    <tr><td>4.3</td><td><code>decode</code> でフレームと溜めを数える</td><td>PC の Probe</td></tr>
+    <tr><td>4.4</td><td><code>show</code> でウィンドウに映し、Discord の画面共有で選んで、黒くないか見る</td><td>PC の Probe と Discord</td></tr>
+    <tr><td>4.5</td><td>映像のファイルを消す</td><td>adb と PC</td></tr>
+  </table>
+
+  <h3>4.1 端末で 5 秒撮る</h3>
+  <figure class="mf-figure phone">
+    <img src="images/android-probe.png" alt="Android の Probe の画面">
+    <figcaption>図 1 Android の Probe の画面(dtab d-01J。カメラとエンコーダーの一覧の部分)</figcaption>
+  </figure>
+  <ol class="steps">
+    <li>端末を机に置き、カメラ(背面)を映してよい物に向けます。<strong>部屋や人、画面、書類が映らないように</strong>してください。</li>
+    <li>アプリ「CamPane Probe」を開きます。端末、カメラ、エンコーダーの一覧が出て、最後に <code>--- 終わり ---</code> と出ます(図 1)。</li>
+    <li>画面のいちばん上の「5 秒圧縮して保存」を押します(一覧を下へ送っていたら、上へ戻すと見えます)。</li>
+    <li>初めてのときは、カメラの権限を求められます。「許可」を押すと、続けて撮り始めます。</li>
+    <li>撮っている 5 秒ほどの間は、アプリを開いたままにします。裏に回したり画面を消したりすると、そこで止まり、途中のファイルは消えます。</li>
+    <li>画面の最後に <code>結果: 成功(1280x720・30 fps)</code> と <code>保存したパス:</code> の行が出れば、撮れています。保存したパスを控えておきます。</li>
+  </ol>
+  <p>撮れたときに画面に出る行の例です(ファイル名は架空の例。行は一部を略した)。</p>
+  <pre>結果: 成功(1280x720・30 fps)
+出たフレームの数: 149
+キーフレームの数: 5
+合計のバイト数: 152804
+SPS のプロファイル: profile_idc=66(Constrained Baseline) level_idc=51(5.1)
+保存したパス: /storage/emulated/0/Android/data/io.github.takosasidev.campane.probe/files/campane_probe_20260101_120000.h264</pre>
+  <div class="note">
+    adb からも撮れます。先に 4.1 の手順で 1 回撮って、カメラの権限を許可しておいてください。adb.exe のあるフォルダで打ちます。
+    <pre>.\adb.exe shell am start -n io.github.takosasidev.campane.probe/.MainActivity --es action encode</pre>
+    <code>encode</code> は GL 経由(ボタンと同じ)、<code>encode-direct</code> は直接の経路です。直接の経路は比べるための物で、端末によってはフレームが 1 枚も出ません。
+  </div>
+
+  <h3>4.2 撮ったファイルを PC へ写す</h3>
+  <ol class="steps">
+    <li>端末と PC を USB でつなぎ、adb.exe のあるフォルダの PowerShell で <code>.\adb.exe devices</code> と打って、<code>device</code> と出ることを確かめます。</li>
+    <li>同じ PowerShell で、4.1 で控えた「保存したパス」を使って次を打ちます(下は架空の例。日時の所を、自分の保存したパスに合わせます)。
+      <pre>.\adb.exe pull /storage/emulated/0/Android/data/io.github.takosasidev.campane.probe/files/campane_probe_20260101_120000.h264</pre>
+    </li>
+    <li><code>1 file pulled</code> と出れば、adb.exe のあるフォルダに <code>.h264</code> のファイルができています。</li>
+    <li>そのファイルを、エクスプローラーで <code>CamPane.Probe.exe</code> のあるフォルダへ移します。</li>
+  </ol>
+  <p class="muted">USB のファイル転送(エクスプローラー)で取り出せるかは、作者は確かめていません。adb を使ってください。</p>
+
+  <h3>4.3 decode で数える</h3>
+  <ol class="steps">
+    <li>CamPane.Probe.exe のあるフォルダの PowerShell で、次を打ちます(ファイル名は自分の物に)。
+      <pre>.\CamPane.Probe.exe decode campane_probe_20260101_120000.h264</pre>
+    </li>
+    <li>数秒で、(a)〜(d) の 4 回の復号の記録と、最後に「比べ」の行が出ます。ウィンドウは出ません。</li>
+    <li><code>失敗:</code> で始まる行が無いことを確かめます。この Probe は、失敗しても終了の値を変えません。失敗は必ず <code>失敗:</code> の行で知らせます。</li>
+    <li>「比べ」の行の読み方は、5 章を見てください。</li>
+  </ol>
+
+  <h3>4.4 show で窓に映し、Discord の画面共有で選ぶ</h3>
+  <ol class="steps">
+    <li>Discord を開き、自分だけのサーバーのボイスチャンネルなど、見られても困らない所に入ります。</li>
+    <li>PC の Probe のフォルダの PowerShell で、次を打ちます。
+      <pre>.\CamPane.Probe.exe show campane_probe_20260101_120000.h264</pre>
+    </li>
+    <li>題名が「CamPane Probe」のウィンドウが開き、5 秒の映像が繰り返し流れます。ウィンドウの大きさは変えられ、絵は縦横の比を保って広がります。</li>
+    <li>Discord で画面共有を始め、共有する物を選ぶ所で、ウィンドウ(アプリ)の一覧から「CamPane Probe」を選びます。</li>
+    <li>共有のプレビューで、<strong>映像が見えるか、黒いか</strong>を見ます。録画のソフトでも、同じようにこのウィンドウを選んで見ます。</li>
+    <li>結果(見えた / 黒かった、使ったソフトの名前)を書き留めます。</li>
+    <li>画面共有を止め、「CamPane Probe」のウィンドウを閉じます。閉じなくても、10 分たつと自分で閉じます。</li>
+  </ol>
+  <div class="note">
+    取り込みで黒くならないかは、作者の環境でもまだ確かめていません。本体の作りを決めるための大事な確認なので、結果は見えた・黒かったのどちらでも役に立ちます。
+  </div>
+  <p>ウィンドウを閉じると、PowerShell に次の形の行が出ます(形の例。数は架空)。</p>
+  <pre>show: ウィンドウが閉じられた
+  出せたフレーム: 447 枚(4 周目、15.2 秒)  絵の大きさ: 1280x720(...)</pre>
+
+  <h3>4.5 映像のファイルを消す</h3>
+  <div class="warn">
+    <strong>映像には部屋が映っています。</strong>確かめ終えたら、端末と PC の<strong>両方</strong>からファイルを消してください。
+  </div>
+  <ol class="steps">
+    <li>端末のファイルを消します。adb.exe のあるフォルダの PowerShell で打ちます(保存したパスは自分の物に)。
+      <pre>.\adb.exe shell rm /storage/emulated/0/Android/data/io.github.takosasidev.campane.probe/files/campane_probe_20260101_120000.h264</pre>
+    </li>
+    <li>保存先にほかのファイルが残っていないか確かめます。何も出なければ空です。
+      <pre>.\adb.exe shell ls /storage/emulated/0/Android/data/io.github.takosasidev.campane.probe/files/</pre>
+    </li>
+    <li>PC のファイルを消します。CamPane.Probe.exe のあるフォルダの PowerShell で打ちます。
+      <pre>Remove-Item .\campane_probe_20260101_120000.h264</pre>
+    </li>
+    <li>ごみ箱を経由しないので、これで PC からも消えています。エクスプローラーで消したときは、ごみ箱も空にします。adb.exe のあるフォルダに写しの残りが無いかも見ます。</li>
+  </ol>
+</section>
+
+<div class="mf-page-break"></div>
+
+<!-- 5. 結果の読み方 -->
+<section>
+  <h2>5. 結果の読み方</h2>
+
+  <h3>5.1 Android の Probe の結果</h3>
+  <table>
+    <tr><th>行</th><th>意味と、望ましい値</th></tr>
+    <tr><td>結果</td><td>成功と、撮れた大きさ。1280x720 が駄目だったときは 640x480 になります</td></tr>
+    <tr><td>出たフレームの数</td><td>5 秒・30 fps なら 150 前後</td></tr>
+    <tr><td>キーフレームの数</td><td>単独で復号できる絵の数。2 秒ごとに頼んでいるので数枚(dtab d-01J では 5)</td></tr>
+    <tr><td>SPS のプロファイル</td><td>エンコーダーが実際に出した種類。dtab d-01J では、Main を頼んでも Constrained Baseline でした</td></tr>
+    <tr><td>出力の時刻が戻った回数</td><td>0 であるべき(並べ替えのある絵が無いこと)</td></tr>
+    <tr><td>開始コードで始まらないバッファの数</td><td>0 であるべき</td></tr>
+  </table>
+
+  <h3>5.2 decode の「比べ」</h3>
+  <p><code>decode</code> は、同じファイルを入れ方を変えて 4 回復号し、最後に 1 行ずつ並べます。</p>
+  <table>
+    <tr><th>行</th><th>入れ方</th><th>見る所</th></tr>
+    <tr><td>(a)</td><td>そのまま、NAL(映像の小さな塊)を 1 つずつ入れる</td><td>基準</td></tr>
+    <tr><td>(b)</td><td>デコーダーを低遅延の設定にして入れる</td><td>(a) より溜めが減るか</td></tr>
+    <tr><td>(c)</td><td>(b) に加えて、1 枚の絵の塊を 1 回にまとめて入れる</td><td>入れ方で溜めが変わるか</td></tr>
+    <tr><td>(d)</td><td>(c) に加えて、映像の頭の設定(SPS)に「並べ替えなし」(<code>max_num_reorder_frames=0</code>)を書き足して入れる</td><td>溜めが 0〜1 枚になるか</td></tr>
+  </table>
+  <p>各行の「遅れ」の、<strong>「絵に直すと 中央値 ○・最大 ○ 枚」</strong>が、デコーダーが絵を出すまでに溜めた枚数です。30 fps なら 1 枚は約 33 ミリ秒なので、溜めが 30 枚なら約 1 秒遅れて映ることになります。0〜1 枚なら、溜めはありません。</p>
+  <p>dtab d-01J で撮ったファイルでの結果です(出力の例。ファイル名は架空、行は略した)。</p>
+  <pre>比べ(...):
+  (a) 今のまま:         ... 絵に直すと 中央値 32・最大 35 枚(120 枚で) / 復号 149 枚 ...
+  (b) 低遅延:           ... 絵に直すと 中央値 17・最大 17 枚(132 枚で) / 復号 149 枚 ...
+  (c) 低遅延+1 枚ずつ:  ... 絵に直すと 中央値 17・最大 17 枚(132 枚で) / 復号 149 枚 ...
+  (d) (c)+SPS 書き足し: ... 絵に直すと 中央値 1・最大 1 枚(148 枚で) / 復号 149 枚 ...
+  デコーダーは (a)〜(d) とも同じ: Microsoft H264 Video Decoder MFT {...}</pre>
+  <p>読み方の例:</p>
+  <ul>
+    <li>dtab d-01J のエンコーダーの映像は、SPS に並べ替えの情報(VUI)がありません。Microsoft のデコーダーは、並べ替えがあっても困らないよう、約 35 枚を溜めてから出しました((a))。</li>
+    <li>低遅延の設定では、溜めは 17 枚に減りました((b))。まとめて入れても変わりませんでした((c))。</li>
+    <li>SPS に「並べ替えなし」を書き足すと、1 枚になりました((d))。残る 1 枚は、次の塊を入れてから出力を取る、測り方の分です。</li>
+    <li>「復号 149 枚」が 4 行とも同じなら、どの入れ方でも絵は全部出ています。</li>
+    <li>最後の行が「デコーダーが違う(比べにならない)」のときは、4 回の比べは当てになりません。</li>
+  </ul>
+  <p>ほかの端末で撮ったファイルでは、数が違うことがあります。</p>
+
+  <h3>5.3 decoders</h3>
+  <pre>.\CamPane.Probe.exe decoders</pre>
+  <p>PC に入っている H.264 のデコーダーを、種類ごとに出します。<code>decode</code> と <code>show</code> が使うのは「ソフトウェア・同期」の 1 番目です。作者の PC では「Microsoft H264 Video Decoder MFT」が 1 つ出ました。0 個のときは復号できません(6 章)。</p>
+</section>
+
+<div class="mf-page-break"></div>
+
+<!-- 6. 困ったとき -->
+<section>
+  <h2>6. 困ったとき</h2>
+
+  <h3>6.1 Android の Probe</h3>
+  <table>
+    <tr><th>出た言葉・様子</th><th>わけと、すること</th></tr>
+    <tr><td>直接の経路ではフレームが来ない(2 秒で 0 枚)</td><td>カメラがエンコーダーへ直接は絵を渡せない端末です(dtab d-01J もそうでした)。ボタン、または <code>--es action encode</code> の GL 経由で撮ってください</td></tr>
+    <tr><td>フレームが 1 枚も出なかった</td><td>GL 経由でも出ないときは、その端末では撮れません。画面の行を全部控えて、Issues で知らせてください</td></tr>
+    <tr><td>1280x720 でできなかった: …</td><td>1280x720 で撮れなかったので、640x480 で 1 回やり直しています。撮れなかった理由は、この行のコロンの後に出ます。続きの行も見てください</td></tr>
+    <tr><td>カメラの権限: 断られたので圧縮しない</td><td>もう一度ボタンを押すと、また求めます。「今後表示しない」にした後は、端末の設定のアプリの権限から、カメラを許可してください</td></tr>
+    <tr><td>中断した(画面が裏に回った)</td><td>撮っている間にアプリが裏に回るか、画面が消えました。途中のファイルは消えています。アプリを開いたまま、もう一度撮ってください</td></tr>
+    <tr><td>カメラを開けなかった: onError …(ほかで使用中)</td><td>ほかのアプリがカメラを使っています。そのアプリを閉じてから撮ってください</td></tr>
+    <tr><td>カメラが 5 秒で開かなかった</td><td>端末を再起動してから、もう一度撮ってください</td></tr>
+    <tr><td>保存したパスが出ない</td><td>成功の行が出ていないので、ファイルはありません。上の行の理由を見てください</td></tr>
+  </table>
+
+  <h3>6.2 adb</h3>
+  <table>
+    <tr><th>様子</th><th>すること</th></tr>
+    <tr><td>「adb は認識されません」と出る</td><td>adb.exe のあるフォルダの PowerShell で、<code>.\adb.exe</code> と打ちます(3.2)</td></tr>
+    <tr><td><code>.\adb.exe devices</code> に何も出ない</td><td>ケーブルがデータを通す物か、USB デバッグがオンかを確かめます。別の USB の口にもつなぎ直します</td></tr>
+    <tr><td><code>unauthorized</code> と出る</td><td>端末の画面の「USB デバッグを許可しますか?」で「許可」を押します</td></tr>
+    <tr><td><code>pull</code> で <code>No such file</code></td><td>パスの打ち間違いです。画面の「保存したパス」と見比べます。<code>.\adb.exe shell ls</code> で保存先の中も見られます</td></tr>
+  </table>
+
+  <h3>6.3 PC の Probe</h3>
+  <table>
+    <tr><th>出た言葉・様子</th><th>わけと、すること</th></tr>
+    <tr><td>exe をダブルクリックすると、すぐ閉じる</td><td>PowerShell から動かす道具です(3.1)</td></tr>
+    <tr><td>ファイルがありません</td><td>ファイル名の打ち間違いか、別のフォルダにあります。<code>ls *.h264</code> で、今のフォルダにあるか見ます</td></tr>
+    <tr><td>ファイルの大きさが … です</td><td>0 バイトか、200 MB を超えています。5 秒のファイルは 150 KB ほどです。撮り直してください</td></tr>
+    <tr><td>開始コード(00 00 01)が 1 つもありません</td><td>Probe が保存した <code>.h264</code> のファイルではありません。ほかの形式(mp4 など)は読めません</td></tr>
+    <tr><td><code>失敗:</code> で始まる行</td><td>その確認が通らなかった印です。行を全部控えて、Issues で知らせてください</td></tr>
+    <tr><td>デコーダーが 0 個</td><td>この PC では復号できません。出た行を全部控えて、Issues で知らせてください</td></tr>
+    <tr><td><code>show</code> のウィンドウが黒いまま</td><td>先に <code>decode</code> で「復号できたフレーム」が 0 でないか確かめます。PowerShell の行に <code>失敗:</code> が出ていないかも見ます</td></tr>
+    <tr><td>画面共有で、ウィンドウが黒く映る</td><td>それ自体が測りたい結果です。使ったソフトの名前と一緒に書き留めてください</td></tr>
+  </table>
+</section>
+
+<!-- 7. 安全とプライバシー -->
+<section>
+  <br>
+  <h2>7. 安全とプライバシー</h2>
+  <ul>
+    <li><strong>映像には部屋が映ります。</strong>撮る前に、映ってよい物にカメラを向けてください。確かめ終えたら、端末と PC の両方からファイルを消してください(4.5)。</li>
+    <li>Android の Probe が求める権限はカメラだけです。インターネットの権限は無く、通信しません。マイクも使いません。</li>
+    <li>カメラを使うのは、ボタンを押してからの 5 秒ほどだけです。アプリが裏に回ったり画面が消えたりすると、すぐにカメラを閉じます。</li>
+    <li>PC の Probe も通信しません。復号した絵をファイルに保存しません。</li>
+    <li>撮ったファイルは、端末の中ではこのアプリ用のフォルダに置かれ、アプリを消すと一緒に消えます。</li>
+    <li>このツールの出力を Issues などに貼るときは、ファイルの中身(映像)は貼らず、文字の行だけにしてください。</li>
+  </ul>
+</section>
+
+<div class="mf-page-break"></div>
+
+<!-- 8. 片付け -->
+<section>
+  <h2>8. 片付け</h2>
+  <p>測り終えて、もう使わないときの手順です。</p>
+  <ol class="steps">
+    <li>4.5 の手順で、端末と PC の映像のファイルを消します。</li>
+    <li>端末のアプリ「CamPane Probe」を消します。端末でアプリのアイコンを長押しして消すか、adb.exe のあるフォルダの PowerShell で次を打ちます。アプリを消すと、端末に残ったファイルも一緒に消えます。
+      <pre>.\adb.exe uninstall io.github.takosasidev.campane.probe</pre>
+    </li>
+    <li>PC の Probe は、展開したフォルダごと消します。Windows に何かを登録していないので、ほかに消す物はありません。</li>
+    <li>USB デバッグは、使わないならオフにします(「開発者向けオプション」の「USB デバッグ」)。</li>
+    <li>端末だけで APK を入れたときは、提供元不明のアプリの許可が元に戻っているか確かめます。</li>
+  </ol>
+</section>
+
+<!-- 9. ライセンスと連絡先 -->
+<section>
+  <br>
+  <h2>9. ライセンスと連絡先</h2>
+  <ul>
+    <li>{{ app.name }} のコードは MIT ライセンスです。リポジトリの <code>LICENSE</code> にあります。</li>
+    <li>使っているライブラリと、PC の zip に同梱している .NET のランタイムのライセンスは、リポジトリの <code>THIRD-PARTY-NOTICES.md</code> にあります。</li>
+    <li>変わった所は、リポジトリの <code>CHANGELOG.md</code> にあります。</li>
+  </ul>
+  <p>リポジトリ: {{ app.repo }}</p>
+  <p>結果の報告や困りごとは、リポジトリの Issues に書いてください。書くときは、端末の機種と Android の版、PC の Windows の版、Probe の画面や PowerShell に出た行(映像のファイルは除く)を添えてください。</p>
+  <p class="muted">この説明書は v{{ app.version }}({{ app.date }})の物です。</p>
+</section>
+
+</body>
+</html>

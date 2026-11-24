@@ -1,0 +1,18 @@
+{
+  "_meta": { "generated_by": "CamPane の取扱説明書(docs/manual)" },
+  "page": { "size": "A4", "orientation": "portrait", "expected_count": 13 },
+  "fonts": { "required": ["BIZ UDPGothic", "Yu Gothic"] },
+  "images": { "dir": "../images" },
+  "expect": { "texts": ["まだできません", "max_num_reorder_frames=0", "CamPane Probe"] },
+  "app": {
+    "name": "CamPane",
+    "subtitle": "手元カメラ窓 測定用ツール(Phase 0)",
+    "version": "0.0.2",
+    "date": "2026-11-24",
+    "repo": "https://github.com/takosasi-dev/cam-pane"
+  },
+  "release": {
+    "zip": "CamPane-Probe-v0.0.2-win-x64.zip",
+    "apk": "CamPane-Probe-v0.0.1-android.apk"
+  }
+}
