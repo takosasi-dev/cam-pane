@@ -1,0 +1,30 @@
+# .NET
+bin/
+obj/
+.vs/
+*.user
+
+# Android
+.gradle/
+build/
+local.properties
+*.keystore
+*.jks
+
+# 配布物はリポジトリに入れない(GitHub の Release に添付する)
+*.exe
+*.apk
+*.aab
+dist/
+
+# カメラの映像と静止画は、絶対にリポジトリに入れない
+*.h264
+*.264
+*.avc
+*.mp4
+*.mkv
+*.webm
+CamPane_*.png
+
+# Probe の出力(PC の中身が入るので入れない)
+probe-output*
